@@ -1,5 +1,7 @@
 from utils.enumClass import Enum, enum, _
 
+
+# The code below is currently unused
 @Enum
 class ValueKind(enum):
     floatingPoint = _

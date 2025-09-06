@@ -1,16 +1,17 @@
 from __future__ import annotations
 from lexer.tokens import Token, TokenType
 from lexer.lexer import tokenize
-
-from .nodes import Expression
+from .nodes import Expression, CalculatorMode
 from .bindingPower import BindingPower
 from .parsingFunctions import parseExpressionStatement
+
+
 
 class Parser:
     def __init__(self):
         self.tokens:list[Token] = []
         self.position = 0
-        self.type = float
+        self.mode:CalculatorMode = CalculatorMode.scientific
 
     def parse(self, sourcecode:str):
         self.position = 0

@@ -1,6 +1,11 @@
 from lexer.tokens import Token, TokenType
 from utils.enumClass import Enum, enum, _
-#These are all expression nodes.
+
+
+# Used to decide whether to parse all numbers as floats or ints
+class CalculatorMode:
+    programmer = 0
+    scientific = 1
 
 @Enum
 class ASTNodeKind(enum):
@@ -8,8 +13,7 @@ class ASTNodeKind(enum):
     BinaryExpression = _
     PrefixExpression = _
     PostfixExpression = _
-    FloatExpression = _
-    IntegerExpression = _
+    NumberExpression = _
     IdentifierExpression = _
     IdentifierImplicitMulExpression = _
     CallExpression = _
@@ -86,18 +90,11 @@ class PostfixExpression(Expression):
     def __repr__(self) -> str:
         return f"Postfix: {self.postfix}\nLeft: {self.argument}"
 
-#? The Integer types allows for bitshifts and bitwise expressions
+#? The "Binary" type allows for bitshifts and bitwise expressions, used for programmer mode. All
+#? This means all Number nodes need to either be floats, or ints
 class NumberExpression(Expression):
-    def __init__(self, value:int|float):
-        super().__init__(ASTNodeKind.FloatExpression)
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f"Value: {self.value}"
-    
-class IntegerExpression(Expression):
-    def __init__(self, value:int):
-        super().__init__(ASTNodeKind.IntegerExpression)
+    def __init__(self, value:float|int):
+        super().__init__(ASTNodeKind.NumberExpression)
         self.value = value
 
     def __repr__(self) -> str:

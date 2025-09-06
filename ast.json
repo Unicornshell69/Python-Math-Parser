@@ -1,15 +1,11 @@
 {
   "kind": "ExpressionStatement",
   "expression": {
-    "kind": "BinaryExpression",
-    "left": {
-      "kind": "FloatExpression",
-      "value": 2.0
-    },
-    "operator": "+",
-    "right": {
-      "kind": "FloatExpression",
-      "value": 2.0
+    "kind": "PostfixExpression",
+    "postfix": "!",
+    "argument": {
+      "kind": "NumberExpression",
+      "value": 5
     }
   }
 }

@@ -2,7 +2,7 @@ from parser.nodes import (
     Statement,
     ExpressionStatement, 
     Expression, 
-    NumberExpression, 
+    NumberExpression,
     PrefixExpression, 
     BinaryExpression, 
     IdentifierExpression,
@@ -43,7 +43,8 @@ def evaluate(node:Statement) -> float:
 def eval(node:ExpressionStatement):
     return evaluate(node.expression)
 
-@bind_evaluate(ASTNodeKind.FloatExpression)
+#Same logic for both float and int values
+@bind_evaluate(ASTNodeKind.NumberExpression)
 def eval(node:NumberExpression):
     return node.value
 
@@ -73,10 +74,10 @@ def eval(node:BinaryExpression):
     return calculateBinary(evaluate(node.left),node.operator,evaluate(node.right))
 
 
-# Use default python type errors. The parser will either create float or int NumberNodes
+# Use default python type errors. The parser will either create float or int Number Nodes, never a mix of both
 def calculateBinary(left:int|float, operator:Token, right:int|float):
     op = operator.type
-    isint = (isinstance(left, int) and isinstance(right, int))
+    bitwise = (isinstance(left, int)) #No need to check both left and right
 
     if op == TokenType.Add:
         return left + right
@@ -88,8 +89,8 @@ def calculateBinary(left:int|float, operator:Token, right:int|float):
         return left * right
     
     elif op == TokenType.Divide:
-        if isint:
-            #do intdiv for ints
+        if bitwise:
+            #do floordiv for ints
             return left // right
         else:
             return left / right
@@ -103,8 +104,8 @@ def calculateBinary(left:int|float, operator:Token, right:int|float):
     elif op == TokenType.Exponent:
         return left**right
     
-    #bitwise operations, cannot be done on floats
-    elif isint:
+    #bitwise operations (cannot be done on floats)
+    elif bitwise:
         if op == TokenType.LShift:
             return left << right
         

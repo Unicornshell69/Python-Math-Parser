@@ -1,6 +1,6 @@
 from lexer.lexer import tokenize
 from parser.parser import Parser
-from parser.nodes import ASTNode
+from parser.nodes import ASTNode, CalculatorMode
 from runtime.interpreter import evaluate
 import json
 from os import path
@@ -17,13 +17,20 @@ def store_ast(ast:ASTNode, dir:str =".\\ast.json"):
 
 if __name__ == "__main__":
     parser = Parser()
-    parser.type = float
+    parser.mode = CalculatorMode.scientific
     while 1:
         source = input(">")
-        ast = parser.parse(source)
-        result = evaluate(ast)
-        #print(len(str(result)))
-        print(f"={result}")
-        store_ast(ast)
+        if source == "s":
+            parser.mode = CalculatorMode.scientific
+            print("[SWITCHED TO SCIENTIFIC]")
+        elif source == "p":
+            parser.mode = CalculatorMode.programmer
+            print("[SWITCHED TO PROGRAMMER]")
+        else:
+            ast = parser.parse(source)
+            result = evaluate(ast)
+            #print(len(str(result)))
+            print(f"={result}")
+            store_ast(ast)
     #print(f"original: {source}")
     

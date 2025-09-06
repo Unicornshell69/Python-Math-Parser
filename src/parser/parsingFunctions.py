@@ -4,15 +4,17 @@ from lexer.tokens import Token, TokenType
 from .nodes import (Statement,
                     ExpressionStatement, 
                     Expression, 
-                    NumberExpression, 
+                    NumberExpression,
                     PrefixExpression, 
                     BinaryExpression, 
                     IdentifierExpression,
                     PostfixExpression,
                     IdentifierImplicitMulExpression,
-                    CallExpression)
+                    CallExpression,
+                    CalculatorMode)
 from .bindingPower import BindingPower
 
+# lazy ciruclar import fix (parser is not initalized)
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .parser import Parser
@@ -30,13 +32,14 @@ LED_MAP:dict[TokenType,tuple[function, BindingPower]] = {}
 def get_led(token:Token) -> tuple[bool, function, int]:
     item = LED_MAP.get(token.type)
     if item == None:
-        return False, None, BindingPower.default
+        #& Return the highest binding power, so the missing LED Handler error isn't skipped in the parseExpression loop
+        return False, None, BindingPower.primary
     return True, item[0], item[1]
 
 def get_nud(token:Token) -> tuple[bool, function, int]:
     item = NUD_MAP.get(token.type)
     if item == None:
-        return False, None, BindingPower.default
+        return False, None, BindingPower.primary
     return True, item[0], item[1]
 
 #! TODO
@@ -73,7 +76,7 @@ def parseExpressionStatement(parser:Parser):
 
 def parseExpression(parser:Parser, bp:BindingPower) -> Expression:
     exists, nud_handler, nud_bp = get_nud(parser.current_token())
-
+    
     if not exists:
         raise Exception(f"Expected NUD handler for token {TokenType.name(parser.current_token().type)}")
 
@@ -82,7 +85,6 @@ def parseExpression(parser:Parser, bp:BindingPower) -> Expression:
     # There is no EOL token, so you need to stop when tokens are done
     while (parser.has_token() and (led := get_led(parser.current_token()))[2] > bp):
         exists, led_handler, led_bp = led
-
         if not exists:
             raise Exception(f"Expected LED handler for token {TokenType.name(parser.current_token().type)}")
 
@@ -112,13 +114,21 @@ def parseNumberExpression(parser:Parser) -> NumberExpression:
     # Convert [Number,Decimal,Number] to float
     num = int(parser.advance().value)
 
-    if parser.has_token() and parser.current_token().type == TokenType.Decimal:
-        parser.advance() #& Eat decimal
-        exists, token = parser.expect([TokenType.Number])
-        num += int(token.value) / (10 ** len(token.value))
+    #^ I may need to raise an error when a float is written in programmer mode
+    #^ Currently it raises a LED handler error for the decimal
+    
+    if parser.mode == CalculatorMode.scientific:
+        if parser.has_token() and parser.current_token().type == TokenType.Decimal:
+            parser.advance() #& Eat decimal
+            exists, token = parser.expect([TokenType.Number])
+            num += int(token.value) / (10 ** len(token.value))
+        # Convert to float for scientific (automatic if you have a fractional part)
+        return NumberExpression(float(num))
+    
+    # Keep as integer for int/bin/hex/oct/etc.
+    return NumberExpression(num)
         
-    # Convert to float for scientific, int for bin/oct/whatever
-    return NumberExpression(parser.type(num))
+
 
 def parseBinaryExpression(parser:Parser, left:Expression, bp:BindingPower):
     operator = parser.advance()
@@ -151,7 +161,16 @@ def parseCallExpression(parser:Parser, left:Expression|IdentifierExpression, bp:
     return CallExpression(left, args)
 
 def parseIdentifierExpression(parser:Parser) -> IdentifierExpression:
-    return IdentifierExpression(parser.advance().value)
+    if parser.mode == CalculatorMode.programmer:
+        token = parser.advance()
+        #only allow up to hexadecimal. I will need to convert to number somehow
+        if token.value not in ["A","B","C","D","E","F"]:
+            raise Exception(f"Identifier {token.value} not allowed in programmer mode")
+        
+        IdentifierExpression(token.value)
+    
+    else:
+        return IdentifierExpression(parser.advance().value)
 
 #Identifier as led, used in something like "(3)pi(5)"
 def parseIdentifierImplicitMul(parser:Parser, left:Expression, bp:BindingPower) -> IdentifierExpression:
@@ -178,6 +197,13 @@ add_led(TokenType.Modulus, BindingPower.multiplicative, parseBinaryExpression)
 add_led(TokenType.SciNotation, BindingPower.exponentiation, parseBinaryExpression)
 
 add_led(TokenType.Exponent, BindingPower.exponentiation, parseBinaryExpression)
+
+#~ Bit-wise Binary Operators
+add_led(TokenType.And, BindingPower.bitwise_and, parseBinaryExpression)
+add_led(TokenType.Or, BindingPower.bitwise_or, parseBinaryExpression)
+add_led(TokenType.Xor, BindingPower.bitwise_xor, parseBinaryExpression)
+add_led(TokenType.LShift, BindingPower.bitwise_shift, parseBinaryExpression)
+add_led(TokenType.RShift, BindingPower.bitwise_shift, parseBinaryExpression)
 
 #~ Prefix/Postfix
 add_nud(TokenType.Subtract, BindingPower.prefix, parsePrefixExpression)

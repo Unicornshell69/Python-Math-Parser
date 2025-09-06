@@ -1,5 +1,5 @@
 from .tokens import Token, TokenType, WHITESPACES
-from .tokens import ArithemticKeys, ArithmeticsMap, SyntaxMap, SyntaxKeys
+from .tokens import ArithemticKeys, ArithmeticsMap, SyntaxMap, SyntaxKeys, BitArithmeticKeys, BitArithmeticsMap
 import re
 
 
@@ -29,6 +29,11 @@ def tokenize(source:str) -> list[Token]:
         elif data.match(*ArithemticKeys):
             matched = data.matched_symbol(*ArithemticKeys)
             data.addToken(ArithmeticsMap[matched], data.slice(len(matched)), start)
+
+        #~ Bitshift, and, or, etc
+        elif data.match(*BitArithmeticKeys):
+            matched = data.matched_symbol(*BitArithmeticKeys)
+            data.addToken(BitArithmeticsMap[matched], data.slice(len(matched)), start)
 
         #~ Identifiers (later functions)
         elif data.peek().isalnum():
